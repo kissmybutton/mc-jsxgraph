@@ -1,5 +1,8 @@
 import GeomClip from "./Incidents/GeomClip";
 import Highlight from "./Incidents/Highlight";
+import Morph from "./Incidents/Morph";
+import Rotate from "./Incidents/Rotate";
+import Translate from "./Incidents/Translate";
 import { name, version } from "../package.json";
 
 export default {
@@ -9,6 +12,18 @@ export default {
     {
       exportable: Highlight,
       name: "Highlight",
+    },
+    {
+      exportable: Rotate,
+      name: "Rotate",
+    },
+    {
+      exportable: Translate,
+      name: "Translate",
+    },
+    {
+      exportable: Morph,
+      name: "Morph",
     },
   ],
   Clip: {

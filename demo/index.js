@@ -5,148 +5,133 @@ import "../node_modules/jsxgraph/distrib/jsxgraph.css";
 
 const McGeom = loadPlugin(McGeomDefinition);
 
-// Equilateral triangle ABΓ with side = 4, centred at origin
-// A = (0, 2√3), B = (-2, 0), Γ = (2, 0)
-// Extensions BK = ΓΛ = AM = 2 (half the side length)
-//   K on extension of AB beyond B
-//   Λ on extension of BΓ beyond Γ
-//   M on extension of ΓA beyond A
-const S = 1.7320508; // √3
+// The arm starts at 30° from horizontal.
+// Rotating it 60° brings it to exactly 90° — a right angle with the base line.
+const ARM_LEN = 3;
+const INITIAL_DEG = 30;
+const INITIAL_RAD = (INITIAL_DEG * Math.PI) / 180;
 
 const clip = new McGeom.Clip(
   {
     board: {
-      boundingbox: [-5, 7, 6, -3],
+      boundingbox: [-2.5, 5.5, 9.5, -1.5],
       axis: false,
       showCopyright: false,
       showNavigation: false,
     },
     shapes: [
-      // ── Inner triangle vertices ──────────────────────────────────────
+      // ── Horizontal reference line ────────────────────────────────────
       {
-        type: "point",
-        id: "A",
-        classes: ["inner"],
-        args: [0, 2 * S],
-        attributes: { name: "A", size: 3, color: "#2c3e50" },
-      },
-      {
-        type: "point",
-        id: "B",
-        classes: ["inner"],
-        args: [-2, 0],
-        attributes: { name: "B", size: 3, color: "#2c3e50" },
-      },
-      {
-        type: "point",
-        id: "G",
-        classes: ["inner"],
-        args: [2, 0],
-        attributes: { name: "Γ", size: 3, color: "#2c3e50" },
-      },
-
-      // ── Outer triangle vertices (equal extensions) ───────────────────
-      // K: extend AB beyond B by 2  →  K = B + 2 * unit(B-A)
-      {
-        type: "point",
-        id: "K",
-        classes: ["outer"],
-        args: [-3, -S],
-        attributes: { name: "K", size: 3, color: "#e74c3c" },
-      },
-      // Λ: extend BΓ beyond Γ by 2  →  Λ = Γ + 2 * (1,0)
-      {
-        type: "point",
-        id: "L",
-        classes: ["outer"],
-        args: [4, 0],
-        attributes: { name: "Λ", size: 3, color: "#e74c3c" },
-      },
-      // M: extend ΓA beyond A by 2  →  M = A + 2 * unit(A-Γ)
-      {
-        type: "point",
-        id: "M",
-        classes: ["outer"],
-        args: [-1, 3 * S],
-        attributes: { name: "M", size: 3, color: "#e74c3c" },
-      },
-
-      // ── Inner equilateral triangle ABΓ ──────────────────────────────
-      {
-        type: "polygon",
-        id: "triABG",
-        classes: ["triangles"],
-        args: ["A", "B", "G"],
+        type: "segment",
+        id: "baseLine",
+        args: [
+          [-1.5, 0],
+          [5, 0],
+        ],
         attributes: {
+          strokeColor: "#95a5a6",
+          strokeWidth: 2,
+          withLabel: false,
+        },
+      },
+
+      // ── Origin vertex ────────────────────────────────────────────────
+      {
+        type: "point",
+        id: "O",
+        args: [0, 0],
+        attributes: { name: "O", size: 4, color: "#2c3e50" },
+      },
+
+      // ── Invisible reference point along positive x-axis (angle measurement)
+      {
+        type: "point",
+        id: "baseR",
+        args: [ARM_LEN, 0],
+        attributes: { visible: false },
+      },
+
+      // ── Arm endpoint, initially at INITIAL_DEG from horizontal ───────
+      {
+        type: "point",
+        id: "armEnd",
+        args: [
+          ARM_LEN * Math.cos(INITIAL_RAD),
+          ARM_LEN * Math.sin(INITIAL_RAD),
+        ],
+        attributes: { visible: false },
+      },
+
+      // ── The rotating arm ─────────────────────────────────────────────
+      {
+        type: "segment",
+        id: "arm",
+        args: ["O", "armEnd"],
+        attributes: {
+          strokeColor: "#e74c3c",
+          strokeWidth: 3,
+          withLabel: false,
+        },
+      },
+
+      // ── Angle arc between base ray and arm ───────────────────────────
+      {
+        type: "angle",
+        id: "angleArc",
+        vertex: "O",
+        from: "baseR",
+        to: "armEnd",
+        attributes: {
+          radius: 0.85,
           fillColor: "#3498db",
           fillOpacity: 0.25,
-          withLabel: true,
-          name: "ABΓ",
-          label: { fontSize: 13, color: "#2980b9" },
-          vertices: { visible: false },
-          borders: { strokeWidth: 2, strokeColor: "#2980b9" },
+          strokeColor: "#2980b9",
+          strokeWidth: 1.5,
+          withLabel: false,
         },
       },
 
-      // ── Extension segments (dashed): B→K, Γ→Λ, A→M ─────────────────
+      // ── Right triangle ───────────────────────────────────────────────
       {
-        type: "segment",
-        id: "segBK",
-        classes: ["extensions"],
-        args: ["B", "K"],
-        attributes: {
-          strokeColor: "#7f8c8d",
-          strokeWidth: 1.5,
-          dash: 2,
-          withLabel: true,
-          name: "BK",
-          label: { position: "lft", offset: [-8, 0], fontSize: 13 },
-        },
+        type: "point",
+        id: "rtA",
+        args: [5, 0],
+        attributes: { visible: false },
       },
       {
-        type: "segment",
-        id: "segGL",
-        classes: ["extensions"],
-        args: ["G", "L"],
-        attributes: {
-          strokeColor: "#7f8c8d",
-          strokeWidth: 1.5,
-          dash: 2,
-          withLabel: true,
-          name: "ΓΛ",
-          label: { position: "bot", offset: [0, -10], fontSize: 13 },
-        },
+        type: "point",
+        id: "rtB",
+        args: [5, 3],
+        attributes: { visible: false },
       },
       {
-        type: "segment",
-        id: "segAM",
-        classes: ["extensions"],
-        args: ["A", "M"],
-        attributes: {
-          strokeColor: "#7f8c8d",
-          strokeWidth: 1.5,
-          dash: 2,
-          withLabel: true,
-          name: "AM",
-          label: { position: "rt", offset: [8, 0], fontSize: 13 },
-        },
+        type: "point",
+        id: "rtC",
+        args: [8.5, 0],
+        attributes: { visible: false },
       },
-
-      // ── Outer equilateral triangle KΛM ──────────────────────────────
       {
         type: "polygon",
-        id: "triKLM",
-        classes: ["triangles"],
-        args: ["K", "L", "M"],
+        id: "rtTri",
+        args: ["rtA", "rtB", "rtC"],
         attributes: {
-          fillColor: "#e74c3c",
-          fillOpacity: 0.1,
-          withLabel: true,
-          name: "KΛM",
-          label: { fontSize: 13, color: "#c0392b" },
+          fillColor: "#27ae60",
+          fillOpacity: 0.2,
+          withLabel: false,
           vertices: { visible: false },
-          borders: { strokeWidth: 2, strokeColor: "#c0392b" },
+          borders: { strokeColor: "#27ae60", strokeWidth: 2.5 },
         },
+      },
+
+      // ── Right angle square marker at rtA ─────────────────────────────
+      // JSXGraph's dependency system keeps this marker correct even as
+      // the triangle morphs, because rtA/rtB/rtC are shared point entities.
+      {
+        type: "angleMarker",
+        id: "rtMark",
+        vertex: "rtA",
+        from: "rtB",
+        to: "rtC",
       },
     ],
   },
@@ -156,33 +141,80 @@ const clip = new McGeom.Clip(
   },
 );
 
-// Highlight the construction step by step:
-//   1. Inner triangle ABΓ
-//   2. Equal extension segments BK, ΓΛ, AM
-//   3. Outer vertices K, Λ, M
-//   4. Outer triangle KΛM
-const DURATION = 1500;
-const GAP = 400;
+// ── Act 1: Rotate the arm from 30° to 90° ───────────────────────────────────
+// pivot { x: 0, y: 0 } = bottom-left of bounding box = O = [0, 0]
+// rotating by 60° takes the arm from 30° to exactly 90° (vertical).
+clip.addIncident(
+  new McGeom.Rotate(
+    { animatedAttrs: { rotation: 60 }, pivot: "O" },
+    { selector: "!#arm", duration: 3000 },
+  ),
+  500,
+);
 
-const steps = [
-  { selector: "!#triABG", color: "#3498db" },
-  { selector: "!#segBK", color: "#f1c40f" },
-  { selector: "!#segGL", color: "#f1c40f" },
-  { selector: "!#segAM", color: "#f1c40f" },
-  { selector: "!#K", color: "#e74c3c" },
-  { selector: "!#L", color: "#e74c3c" },
-  { selector: "!#M", color: "#e74c3c" },
-  { selector: "!#triKLM", color: "#f1c40f" },
-];
+// ── Act 2: Draw attention to the angle arc (now at 90°) ─────────────────────
+clip.addIncident(
+  new McGeom.Highlight(
+    { animatedAttrs: { highlight: { numBlinks: 4, color: "#2980b9" } } },
+    { selector: "!#angleArc", duration: 2000 },
+  ),
+  3800,
+);
 
-steps.forEach(({ selector, color }, i) => {
-  clip.addIncident(
-    new McGeom.Highlight(
-      { animatedAttrs: { highlight: { numBlinks: 3, color } } },
-      { selector, duration: DURATION },
-    ),
-    i * (DURATION + GAP),
-  );
-});
+// ── Act 3: Highlight the vertical arm (the perpendicular ray) ───────────────
+clip.addIncident(
+  new McGeom.Highlight(
+    { animatedAttrs: { highlight: { numBlinks: 3, color: "#e74c3c" } } },
+    { selector: "!#arm", duration: 1500 },
+  ),
+  6100,
+);
+
+// ── Act 4: Introduce the right triangle ─────────────────────────────────────
+clip.addIncident(
+  new McGeom.Highlight(
+    { animatedAttrs: { highlight: { numBlinks: 3, color: "#27ae60" } } },
+    { selector: "!#rtTri", duration: 1800 },
+  ),
+  8500,
+);
+
+// ── Act 5: Highlight the right angle square marker ──────────────────────────
+clip.addIncident(
+  new McGeom.Highlight(
+    { animatedAttrs: { highlight: { numBlinks: 4, color: "#e74c3c" } } },
+    { selector: "!#rtMark", duration: 2000 },
+  ),
+  10500,
+);
+
+// ── Act 6: Morph the triangle — the right angle is preserved ────────────────
+// rtA stays fixed; rtB goes higher, rtC moves further right.
+// Because rtA/rtB/rtC are shared entities, the square marker updates
+// automatically and stays a perfect right angle throughout the morph.
+clip.addIncident(
+  new McGeom.Morph(
+    {
+      animatedAttrs: {
+        morph: [
+          [5, 0],
+          [5, 4.5],
+          [9, 0],
+        ],
+      },
+    },
+    { selector: "!#rtTri", duration: 2000 },
+  ),
+  13500,
+);
+
+// ── Act 7: Highlight the marker again — still 90° after the morph ───────────
+clip.addIncident(
+  new McGeom.Highlight(
+    { animatedAttrs: { highlight: { numBlinks: 3, color: "#e74c3c" } } },
+    { selector: "!#rtMark", duration: 1500 },
+  ),
+  15700,
+);
 
 new Player({ clip });
