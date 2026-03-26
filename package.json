@@ -80,7 +80,7 @@
     "webpack-dev-server": "5.2.3"
   },
   "dependencies": {
-    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-terser": "^1.0.0",
     "jsxgraph": "^1.12.2"
   }
 }
