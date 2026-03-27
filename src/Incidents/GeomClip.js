@@ -133,10 +133,10 @@ export default class GeomClip extends BrowserClip {
       ];
       elementAttrs = {
         type: "square",
-        radius: 0.3,
-        fillColor: "#e74c3c",
-        fillOpacity: 0.15,
-        strokeColor: "#e74c3c",
+        radius: 0.5,
+        fillColor: "#3498db",
+        fillOpacity: 0.25,
+        strokeColor: "#2980b9",
         strokeWidth: 2,
         withLabel: false,
         ...attributes,
@@ -147,6 +147,14 @@ export default class GeomClip extends BrowserClip {
           ? this._entityMap[arg]
           : arg,
       );
+    }
+
+    // Text elements rendered with useHTML:true become floating <div> overlays
+    // that don't scale or position correctly inside MC's shadow DOM container.
+    // Default to SVG text rendering; callers can override with useHTML:true
+    // if they accept the layout limitations that come with it.
+    if (elementType === "text" && elementAttrs.useHTML === undefined) {
+      elementAttrs = { useHTML: false, ...elementAttrs };
     }
 
     return this.board.create(elementType, resolvedArgs, {

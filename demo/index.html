@@ -3,29 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>DonkeyClip | MotorCortex Plugin Starter Demo</title>
+    <title>mc-jsxgraph | Demo</title>
     <link rel="stylesheet" href="style.css">
   </head>
-
   <body>
-    <section><div id="clip"></div></section>
-
-    <div id="motorcortex-tools">
-        <div id="motorcortex-logo">
-            <img src="./motorcortex.png" width="20px" height="20px" />
-        </div>
-        <div id="menu">
-            <div class="item">
-                <a href="https://donkeyclip.com/explore/plugins" target="_blank">Plugins</a>
-            </div>
-            <div class="item">
-                <a href="https://motorcortexjs.com" target="_blank">Docs</a>
-            </div>
-        </div>
-    </div> 
-
-    <script src="./motorcortex-tools.js"></script>
+    <div id="layout">
+      <div id="left-panel">
+        <div id="clip"></div>
+      </div>
+      <div id="right-panel">
+        <div id="sequencer-label">Sequencer</div>
+        <div id="timeline"></div>
+      </div>
+    </div>
     <script src="./bundle.js"></script>
   </body>
 </html>
