@@ -1,5 +1,6 @@
 import GeomClip from "./Incidents/GeomClip";
 import Attr from "./Incidents/Attr";
+import DrawOn from "./Incidents/DrawOn";
 import Highlight from "./Incidents/Highlight";
 import Morph from "./Incidents/Morph";
 import Rotate from "./Incidents/Rotate";
@@ -20,6 +21,15 @@ const attrRules = {
   animatedAttrs: {
     type: "object",
     strict: false, // any JSXGraph attribute name is valid
+  },
+};
+
+const drawOnRules = {
+  animatedAttrs: {
+    type: "object",
+    props: {
+      drawOn: { type: "number", min: 0, max: 1, integer: false },
+    },
   },
 };
 
@@ -83,26 +93,13 @@ const geomClipRules = {
     type: "object",
     strict: false, // all JSXGraph board options are valid
   },
+  // Each shape descriptor can have wildly different fields depending on type
+  // (point, polygon, angle, angleMarker, text, …). Validating only the array
+  // container; per-field validation would require marking every optional field
+  // (classes, vertex, from, to, attributes, …) as required.
   shapes: {
     type: "array",
-    items: {
-      type: "object",
-      strict: false, // shape descriptors vary widely by type
-      props: {
-        type: { type: "string" },
-        id: { type: "string" },
-        args: { type: "array" },
-        classes: {
-          type: "array",
-          items: { type: "string" },
-        },
-        attributes: { type: "object", strict: false },
-        // angle / angleMarker only
-        vertex: { type: "string" },
-        from: { type: "string" },
-        to: { type: "string" },
-      },
-    },
+    items: { type: "object", strict: false },
   },
 };
 
@@ -116,6 +113,11 @@ export default {
       exportable: Attr,
       name: "Attr",
       attributesValidationRules: attrRules,
+    },
+    {
+      exportable: DrawOn,
+      name: "DrawOn",
+      attributesValidationRules: drawOnRules,
     },
     {
       exportable: Highlight,

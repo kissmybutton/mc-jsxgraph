@@ -140,6 +140,23 @@ const clip = new McGeom.Clip(
         attributes: { visible: false },
       },
 
+      // ── Median from pC to midpoint of AB — drawn on during Phase 1 ──────────
+      {
+        type: "segment",
+        id: "median",
+        args: [
+          [5, 0],
+          [5, 4.5],
+        ],
+        attributes: {
+          strokeColor: "#5dade2",
+          strokeWidth: 1.5,
+          dash: 2,
+          withLabel: false,
+          visible: false,
+        },
+      },
+
       // ── Title labels — SVG text (useHTML:false so visibility toggling works) ─
       {
         type: "text",
@@ -220,6 +237,25 @@ track(
   "lblAcute",
   "add",
 );
+
+// Draw in the median line (midpoint of AB → pC)
+track(
+  new AddElement({ definition: { id: "median" } }, { mcid: "median" }),
+  600,
+  "median",
+  "add",
+);
+track(
+  new McGeom.DrawOn(
+    { animatedAttrs: { drawOn: 1 } },
+    { selector: "!#median", duration: 800, easing: "easeInOutQuad" },
+  ),
+  600,
+  "median",
+  "drawOn",
+  800,
+);
+track(new RemoveElement({ mcid: "median" }), 5000, "median", "remove");
 
 track(
   new AddElement({ definition: { id: "arcA" } }, { mcid: "arcA" }),
@@ -409,6 +445,7 @@ function renderTimeline(data, totalDuration, container, getMs) {
   // Group by element in a fixed display order
   const ORDER = [
     "tri",
+    "median",
     "arcA",
     "arcB",
     "arcC",
@@ -543,6 +580,7 @@ function renderTimeline(data, totalDuration, container, getMs) {
   // Per-element display config
   const META = {
     tri: { name: "tri", color: "#e2e8f0" },
+    median: { name: "median", color: "#5dade2" },
     arcA: { name: "arcA", color: "#a78bfa" },
     arcB: { name: "arcB", color: "#c4b5fd" },
     arcC: { name: "arcC", color: "#ddd6fe" },
@@ -557,6 +595,7 @@ function renderTimeline(data, totalDuration, container, getMs) {
     morph: { bar: "#3b82f6", text: "#fff", label: "Morph" },
     highlight: { bar: "#f59e0b", text: "#111", label: "Highlight" },
     attr: { bar: "#a78bfa", text: "#fff", label: "Attr" },
+    drawOn: { bar: "#5dade2", text: "#fff", label: "DrawOn" },
     add: { dot: "#34d399" },
     remove: { dot: "#f87171" },
   };

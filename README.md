@@ -15,6 +15,7 @@
     - [Dynamic shapes (AddElement / RemoveElement)](#dynamic-shapes-addelement--removeelement)
 - [Incidents](#incidents)
   - [Attr](#attr)
+  - [DrawOn](#drawon)
   - [Morph](#morph)
   - [Highlight](#highlight)
   - [Rotate](#rotate)
@@ -34,9 +35,10 @@
 
 mc-jsxgraph lets you declare a JSXGraph board full of geometric shapes and animate them on a timeline — morphing vertices, tweening visual attributes, highlighting elements, and dynamically adding or removing shapes mid-clip. Every incident supports MC's full feature set: easing, delay, repeats, hiatus, and accurate seeking in both directions.
 
-The plugin exposes five Incidents and one custom Clip:
+The plugin exposes six Incidents and one custom Clip:
 
 - `Attr` — tween any JSXGraph visual property (opacity, color, stroke width, …)
+- `DrawOn` — progressively reveal a path element as if it is being drawn stroke-by-stroke
 - `Morph` — interpolate the defining vertices of any shape to a new position
 - `Highlight` — blink an element to draw attention
 - `Rotate` — rotate a shape around a pivot point
@@ -228,6 +230,24 @@ new McGeom.Attr(
 ```
 
 Multiple attributes animate in parallel. MC chains `initialValue` automatically, so back-to-back `Attr` incidents on the same element and attribute always continue from where the previous one left off.
+
+## DrawOn
+
+Progressively reveals a JSXGraph path element as if it is being drawn stroke-by-stroke from its first defining point. Works with segments, polygons, and any multi-point path. Arc-length weighting ensures constant visual pen speed regardless of varying edge lengths.
+
+```javascript
+new McGeom.DrawOn(
+  { animatedAttrs: { drawOn: 1 } },
+  { selector: "!#myLine", duration: 1200, easing: "easeInOutQuad" },
+);
+```
+
+| `drawOn` value | Effect           |
+| -------------- | ---------------- |
+| `0 → 1`        | Draw the path in |
+| `1 → 0`        | Erase the path   |
+
+The element should initially have all its defining points set (so JSXGraph can render it fully when needed). Set `visible: false` if the element should be hidden before the DrawOn incident starts, then reveal it with `AddElement` just before the incident runs.
 
 ## Morph
 
