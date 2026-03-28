@@ -68,9 +68,8 @@ const rotateRules = {
       rotation: { type: "number", integer: false },
     },
   },
-  // pivot accepts "center"|"centroid"|"start"|"end"|"<entityId>" or [x,y]
-  // — validated loosely as an optional string; [x,y] arrays also work at runtime
-  pivot: { type: "string" },
+  // pivot is optional — resolvePivot() defaults to centroid when undefined.
+  // Not listed here because MC validation would mark it required.
 };
 
 const translateRules = {
