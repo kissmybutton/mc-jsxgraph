@@ -19,7 +19,22 @@ export function getDefiningPoints(el) {
     // vertices has a closing duplicate — drop it
     return el.vertices.slice(0, -1).map((v) => [v.X(), v.Y()]);
   }
-  throw new Error(`mc-jsxgraph: unsupported element type "${t}"`);
+  if (t === "sector" || t === "angle") {
+    // JSXGraph angle/sector has point1 (from), point2 (vertex), point3 (to)
+    return [
+      [el.point1.X(), el.point1.Y()],
+      [el.point2.X(), el.point2.Y()],
+      [el.point3.X(), el.point3.Y()],
+    ];
+  }
+  if (t === "circle") {
+    return [[el.center.X(), el.center.Y()]];
+  }
+  if (t === "text") {
+    return [[el.X(), el.Y()]];
+  }
+  // Fallback: return empty rather than crash — effects will no-op
+  return [];
 }
 
 /**
@@ -37,6 +52,14 @@ export function setDefiningPoints(el, points) {
     el.vertices.slice(0, -1).forEach((v, i) => {
       v.setPosition(JXG.COORDS_BY_USER, points[i]);
     });
+  } else if ((t === "sector" || t === "angle") && points.length >= 3) {
+    el.point1.setPosition(JXG.COORDS_BY_USER, points[0]);
+    el.point2.setPosition(JXG.COORDS_BY_USER, points[1]);
+    el.point3.setPosition(JXG.COORDS_BY_USER, points[2]);
+  } else if (t === "circle" && points.length >= 1) {
+    el.center.setPosition(JXG.COORDS_BY_USER, points[0]);
+  } else if (t === "text" && points.length >= 1) {
+    el.setPosition(JXG.COORDS_BY_USER, points[0]);
   }
   el.board.update();
 }

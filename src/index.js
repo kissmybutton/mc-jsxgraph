@@ -5,6 +5,7 @@ import Highlight from "./Incidents/Highlight";
 import Morph from "./Incidents/Morph";
 import Rotate from "./Incidents/Rotate";
 import Translate from "./Incidents/Translate";
+import Transform from "./Incidents/Transform";
 import { name, version } from "../package.json";
 
 // ─── Reusable sub-schemas ─────────────────────────────────────────────────────
@@ -104,6 +105,18 @@ const geomClipRules = {
 
 // ─── Plugin definition ────────────────────────────────────────────────────────
 
+const transformRules = {
+  animatedAttrs: {
+    type: "object",
+    props: {
+      transform: {
+        type: "object",
+        strict: false,
+      },
+    },
+  },
+};
+
 export default {
   npm_name: name, // don't touch this
   version: version, // don't touch this
@@ -138,7 +151,15 @@ export default {
       name: "Morph",
       attributesValidationRules: morphRules,
     },
+    {
+      exportable: Transform,
+      name: "Transform",
+      attributesValidationRules: transformRules,
+    },
   ],
+  compositeAttributes: {
+    transform: ["translate", "rotation", "morph"],
+  },
   Clip: {
     exportable: GeomClip,
     attributesValidationRules: geomClipRules,

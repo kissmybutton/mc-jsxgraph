@@ -58,6 +58,7 @@ export default class Rotate extends Effect {
   }
 
   onProgress(millisecond) {
+    if (!this.snapshotPoints?.length) return; // entity not yet available or unsupported type
     const fraction = this.getFraction(millisecond);
     const deltaAngle =
       (this.targetValue - this.initialValue) * fraction + this.initialValue;

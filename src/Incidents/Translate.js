@@ -38,6 +38,7 @@ export default class Translate extends Effect {
   }
 
   onProgress(millisecond) {
+    if (!this.snapshotPoints?.length) return; // entity not yet available or unsupported type
     const fraction = this.getFraction(millisecond);
     const tx =
       (this.targetValue.x - this.initialValue.x) * fraction +

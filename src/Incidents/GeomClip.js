@@ -45,6 +45,10 @@ import JXG from "jsxgraph";
  *   reference and passes it back as definition on backward-seek re-add.
  */
 export default class GeomClip extends BrowserClip {
+  get html() {
+    return `<div style="width:100%;height:100%;"></div>`;
+  }
+
   onAfterRender() {
     const container = this.context.rootElement;
     const { offsetWidth, offsetHeight } = container;
@@ -59,6 +63,7 @@ export default class GeomClip extends BrowserClip {
       axis: false,
       showCopyright: false,
       showNavigation: false,
+      keepaspectratio: true,
       ...boardAttrs,
     });
 
@@ -99,12 +104,25 @@ export default class GeomClip extends BrowserClip {
 
       if (id) {
         this._entityMap[id] = element;
-        this.setCustomEntity(id, element, classes);
+        // Always include "shape" class so !.shape selects all entities at once
+        const allClasses = classes.includes("shape")
+          ? classes
+          : [...classes, "shape"];
+        this.setCustomEntity(id, element, allClasses);
       }
     }
 
     // Signal that the clip context is ready so Effects can run
     this.contextLoaded();
+
+    // Register this instance so ClipController can reach it for dynamic
+    // addShape calls. MC wraps GeomClip in its own clip manager and doesn't
+    // expose the inner instance, so we use a well-known global as a bridge.
+    // eslint-disable-next-line no-undef
+    if (typeof globalThis !== "undefined") {
+      // eslint-disable-next-line no-undef
+      globalThis.__activeGeomClip = this;
+    }
   }
 
   /**
@@ -119,11 +137,25 @@ export default class GeomClip extends BrowserClip {
     let elementAttrs = attributes;
 
     if (type === "angle" && shape.vertex !== undefined) {
-      resolvedArgs = [
-        this._entityMap[shape.from],
-        this._entityMap[shape.vertex],
-        this._entityMap[shape.to],
-      ];
+      let fromPt = this._entityMap[shape.from];
+      const vertexPt = this._entityMap[shape.vertex];
+      let toPt = this._entityMap[shape.to];
+      // Ensure we draw the minor (smaller) angle by default.
+      // JSXGraph draws CCW from→vertex→to. If the CCW sweep is > 180°
+      // (reflex), swap from and to to get the minor angle.
+      if (fromPt && vertexPt && toPt) {
+        const vx = vertexPt.X(),
+          vy = vertexPt.Y();
+        const a1 = Math.atan2(fromPt.Y() - vy, fromPt.X() - vx);
+        const a2 = Math.atan2(toPt.Y() - vy, toPt.X() - vx);
+        let ccw = a2 - a1;
+        if (ccw < 0) ccw += 2 * Math.PI;
+        if (ccw > Math.PI) {
+          // Swap to get the minor angle
+          [fromPt, toPt] = [toPt, fromPt];
+        }
+      }
+      resolvedArgs = [fromPt, vertexPt, toPt];
     } else if (type === "angleMarker") {
       elementType = "angle";
       resolvedArgs = [
@@ -163,6 +195,39 @@ export default class GeomClip extends BrowserClip {
     });
   }
 
+  // ── addCustomEntity API (MC v1) ──────────────────────────────────────────
+  // These three methods are called by MC's addCustomEntity / VisibilityChannel.
+
+  /**
+   * Called by MC's addCustomEntity to create a JSXGraph element from a definition.
+   * @param {object} definition - shape descriptor (same format as attrs.shapes items)
+   * @returns the JSXGraph element, or null on failure
+   */
+  renderCustomEntity(definition) {
+    const element = this._createBoardElement(definition);
+    if (!element) return null;
+    if (definition.id) {
+      this._entityMap[definition.id] = element;
+    }
+    return element;
+  }
+
+  /**
+   * Called by MC's VisibilityChannel to show a previously hidden element.
+   * @param {object} jsgEl - JSXGraph element
+   */
+  showElement(jsgEl) {
+    this._showElement(jsgEl);
+  }
+
+  /**
+   * Called by MC's VisibilityChannel to hide an element.
+   * @param {object} jsgEl - JSXGraph element
+   */
+  hideElement(jsgEl) {
+    this._hideElement(jsgEl);
+  }
+
   /**
    * Show a JSXGraph element. Handles polygons whose borders are separate elements.
    */
@@ -200,6 +265,7 @@ export default class GeomClip extends BrowserClip {
    */
   insertElement(definition, id, classes = []) {
     let jsgEl;
+    let isFirstCreation = false;
 
     // Re-add after backward seek: definition is the JSXGraph element itself
     // (the framework passes back what deleteElement returned).
@@ -217,15 +283,45 @@ export default class GeomClip extends BrowserClip {
       jsgEl = this._createBoardElement(definition);
       if (!jsgEl) return null;
       if (id) this._entityMap[id] = jsgEl;
+      isFirstCreation = true;
     }
 
-    this._showElement(jsgEl);
+    // On first creation, respect the definition's own attributes (e.g. visible:false,
+    // strokeOpacity:0). Only force-show on re-add after backward seek or reuse,
+    // where the element was previously hidden by deleteElement.
+    if (!isFirstCreation) {
+      this._showElement(jsgEl);
+    }
+
     // Only register if not already present — pre-created shapes are registered
     // in onAfterRender; re-adds retain their registration from the first insertion.
     if (id && !this.context.getElementByMCID?.(id)) {
       this.context.setCustomEntity(id, jsgEl, classes);
     }
     return jsgEl;
+  }
+
+  /**
+   * Dynamically add a shape to the canvas after the clip has been initialised.
+   * Equivalent to what onAfterRender does for each entry in attrs.shapes, so
+   * external callers can add shapes without recreating the whole clip.
+   *
+   * @param {object} descriptor - same format as items in attrs.shapes
+   * @returns the JSXGraph element, or null on failure
+   */
+  addShape(descriptor) {
+    const { id, classes = [] } = descriptor;
+    const element = this._createBoardElement(descriptor);
+    if (!element) return null;
+
+    if (id) {
+      this._entityMap[id] = element;
+      const allClasses = classes.includes("shape")
+        ? classes
+        : [...classes, "shape"];
+      this.setCustomEntity(id, element, allClasses);
+    }
+    return element;
   }
 
   /**
@@ -236,6 +332,18 @@ export default class GeomClip extends BrowserClip {
    *
    * @param {string} mcid
    */
+  /**
+   * Hide every entity currently on the board.
+   * The clip timeline and registered entities are preserved — the LLM can
+   * addShape() new elements on a visually clean canvas without destroying
+   * the underlying MC clip structure.
+   */
+  clearAll() {
+    for (const [, jsgEl] of Object.entries(this._entityMap)) {
+      this._hideElement(jsgEl);
+    }
+  }
+
   deleteElement(mcid) {
     const wrapper = this.context.getElementByMCID(mcid);
     if (!wrapper) return null;

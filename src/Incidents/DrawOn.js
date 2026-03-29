@@ -48,6 +48,7 @@ export default class DrawOn extends Effect {
   }
 
   onProgress(millisecond) {
+    if (!this.points || this.points.length < 2) return; // need at least 2 points (segment)
     const fraction = this.getFraction(millisecond);
     const t =
       this.initialValue + (this.targetValue - this.initialValue) * fraction;

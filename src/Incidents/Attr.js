@@ -25,7 +25,13 @@ export default class Attr extends Effect {
     const el = this.element.entity;
     // JSXGraph stores all visual properties lowercased in visProp
     const key = this.attributeKey.toLowerCase();
-    return el.visProp?.[key] ?? null;
+    const val = el.visProp?.[key];
+    // For color keys, always return a valid hex string — "none"/"transparent"/undefined
+    // would crash the color interpolation or cause MC to reject the scratch value.
+    if (_isColorKey(this.attributeKey)) {
+      return typeof val === "string" && val.startsWith("#") ? val : "#000000";
+    }
+    return val ?? 0;
   }
 
   onProgress(millisecond) {
@@ -34,14 +40,16 @@ export default class Attr extends Effect {
     const to = this.targetValue;
 
     let value;
-    if (
-      _isColorKey(this.attributeKey) &&
-      typeof from === "string" &&
-      typeof to === "string"
-    ) {
-      value = _lerpColor(from, to, fraction);
-    } else {
+    if (_isColorKey(this.attributeKey)) {
+      // Ensure both from/to are valid color strings for interpolation
+      const fromStr = typeof from === "string" ? from : "#000000";
+      const toStr = typeof to === "string" ? to : "#000000";
+      value = _lerpColor(fromStr, toStr, fraction);
+    } else if (typeof from === "number" && typeof to === "number") {
       value = from + (to - from) * fraction;
+    } else {
+      // Can't interpolate non-numeric, non-color — just set target
+      value = fraction >= 0.5 ? to : from;
     }
 
     const el = this.element.entity;
@@ -57,6 +65,9 @@ function _isColorKey(key) {
 }
 
 function _parseHex(hex) {
+  if (!hex || typeof hex !== "string" || !hex.match(/^#?[0-9a-fA-F]{3,6}$/)) {
+    return [0, 0, 0]; // fallback for "none", "transparent", or invalid values
+  }
   const h = hex.replace("#", "");
   return h.length === 3
     ? [

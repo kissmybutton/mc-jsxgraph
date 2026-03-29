@@ -48,21 +48,29 @@ export default class Morph extends Effect {
     this.snapshotPoints = getDefiningPoints(this.element.entity);
     if (
       this.targetValue !== null &&
+      this.snapshotPoints.length > 0 &&
       this.targetValue.length !== this.snapshotPoints.length
     ) {
-      throw new Error(
+      console.warn(
         `mc-jsxgraph Morph: target has ${this.targetValue.length} points ` +
           `but "${this.element.entity.elType}" has ${this.snapshotPoints.length}. ` +
-          `Morph requires matching point counts.`,
+          `Truncating to match.`,
       );
+      // Truncate target to match element's point count
+      if (this.targetValue.length > this.snapshotPoints.length) {
+        this.targetValue = this.targetValue.slice(
+          0,
+          this.snapshotPoints.length,
+        );
+      }
     }
   }
 
   onProgress(millisecond) {
+    if (!this.snapshotPoints?.length) return;
     const fraction = this.getFraction(millisecond);
-    // initialValue is null only for the very first incident (scratch).
-    // From the second incident onward MC provides the previous targetValue.
     const from = this.initialValue ?? this.snapshotPoints;
+    if (!from?.length) return;
     const to = this.targetValue;
     const newPoints = from.map(([fx, fy], i) => {
       const [tx, ty] = to[i];
