@@ -54,6 +54,21 @@ export default class Attr extends Effect {
 
     const el = this.element.entity;
     el.setAttribute({ [this.attributeKey]: value });
+    // Polygons: propagate stroke attrs to border segments AND sync fill with stroke color
+    if (el.elType === "polygon" && el.borders) {
+      const k = this.attributeKey;
+      if (k === "strokeColor") {
+        // Recoloring a polygon should change the fill too (it's the dominant visual)
+        el.setAttribute({ fillColor: value });
+        for (const border of el.borders) {
+          border.setAttribute({ strokeColor: value });
+        }
+      } else if (k === "strokeOpacity" || k === "strokeWidth") {
+        for (const border of el.borders) {
+          border.setAttribute({ [k]: value });
+        }
+      }
+    }
     el.board.update();
   }
 }

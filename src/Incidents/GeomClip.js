@@ -174,11 +174,20 @@ export default class GeomClip extends BrowserClip {
         ...attributes,
       };
     } else {
-      resolvedArgs = args.map((arg) =>
-        typeof arg === "string" && this._entityMap[arg]
-          ? this._entityMap[arg]
-          : arg,
-      );
+      // Resolve string args from entityMap first, then fall back to board.objects
+      // (covers cases where a point was created on the board but an error prevented
+      // it from being stored in _entityMap).
+      resolvedArgs = args.map((arg) => {
+        if (typeof arg !== "string") return arg;
+        const fromMap = this._entityMap[arg];
+        const fromBoard = this.board?.objects?.[arg];
+        if (!fromMap && !fromBoard) {
+          console.warn(
+            `[_createBoardElement] ref "${arg}" not in _entityMap (${Object.keys(this._entityMap).length} keys) nor board.objects`,
+          );
+        }
+        return fromMap || fromBoard || arg;
+      });
     }
 
     // Text elements rendered with useHTML:true become floating <div> overlays
@@ -187,6 +196,24 @@ export default class GeomClip extends BrowserClip {
     // if they accept the layout limitations that come with it.
     if (elementType === "text" && elementAttrs.useHTML === undefined) {
       elementAttrs = { useHTML: false, ...elementAttrs };
+    }
+
+    // Validate that all point references resolved. Unresolved string args
+    // would crash JSXGraph when it tries to read usrCoords on undefined.
+    if (
+      elementType === "segment" ||
+      elementType === "line" ||
+      elementType === "arrow"
+    ) {
+      for (let i = 0; i < resolvedArgs.length; i++) {
+        if (typeof resolvedArgs[i] === "string") {
+          console.warn(
+            `mc-jsxgraph: ${elementType} "${id}" references unknown point "${resolvedArgs[i]}". ` +
+              `Make sure points are added before shapes that reference them.`,
+          );
+          return null;
+        }
+      }
     }
 
     return this.board.create(elementType, resolvedArgs, {
@@ -205,9 +232,31 @@ export default class GeomClip extends BrowserClip {
    */
   renderCustomEntity(definition) {
     const element = this._createBoardElement(definition);
-    if (!element) return null;
+    if (!element) {
+      console.warn(
+        `[renderCustomEntity] _createBoardElement returned null for "${definition.id}" (type: ${definition.type})`,
+      );
+      return null;
+    }
     if (definition.id) {
       this._entityMap[definition.id] = element;
+    }
+    // Polygon borders are auto-created by JSXGraph with default opacity (1).
+    // If the polygon is preloaded (opacity 0), sync borders to match —
+    // otherwise showElement at birthtime flashes the borders at full opacity
+    // before the appear() animation kicks in.
+    if (element.elType === "polygon" && element.borders) {
+      const attrs = definition.attributes || {};
+      if (attrs.strokeOpacity === 0) {
+        for (const border of element.borders) {
+          border.setAttribute({ strokeOpacity: 0 });
+        }
+      }
+      if (attrs.fillOpacity === 0) {
+        for (const border of element.borders) {
+          border.setAttribute({ fillOpacity: 0 });
+        }
+      }
     }
     return element;
   }
@@ -232,10 +281,18 @@ export default class GeomClip extends BrowserClip {
    * Show a JSXGraph element. Handles polygons whose borders are separate elements.
    */
   _showElement(jsgEl) {
+    // setAttribute updates visProp.visible so board.update() preserves state.
+    // setDisplayRendNode directly sets the SVG node display as extra insurance.
     jsgEl.setAttribute({ visible: true });
+    if (typeof jsgEl.setDisplayRendNode === "function") {
+      jsgEl.setDisplayRendNode(true);
+    }
     if (jsgEl.elType === "polygon" && jsgEl.borders) {
       for (const border of jsgEl.borders) {
         border.setAttribute({ visible: true });
+        if (typeof border.setDisplayRendNode === "function") {
+          border.setDisplayRendNode(true);
+        }
       }
     }
     jsgEl.board.update();
@@ -246,9 +303,15 @@ export default class GeomClip extends BrowserClip {
    */
   _hideElement(jsgEl) {
     jsgEl.setAttribute({ visible: false });
+    if (typeof jsgEl.setDisplayRendNode === "function") {
+      jsgEl.setDisplayRendNode(false);
+    }
     if (jsgEl.elType === "polygon" && jsgEl.borders) {
       for (const border of jsgEl.borders) {
         border.setAttribute({ visible: false });
+        if (typeof border.setDisplayRendNode === "function") {
+          border.setDisplayRendNode(false);
+        }
       }
     }
     jsgEl.board.update();

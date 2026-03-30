@@ -44,44 +44,56 @@ export default class Transform extends Effect {
 
     const fraction = this.getFraction(millisecond);
 
-    // ── Morph: interpolate base points toward target coordinates ──────
-    const initM = this.initialValue.morph;
-    const targM = this.targetValue.morph;
-    let basePoints;
-
-    if (targM && Array.isArray(targM)) {
-      // Morph from initial morph state (or snapshot) to target morph state
-      const from = initM && Array.isArray(initM) ? initM : this.snapshotPoints;
-      basePoints = from.map(([fx, fy], i) => {
-        const [tx, ty] = targM[i] || [fx, fy];
-        return [fx + (tx - fx) * fraction, fy + (ty - fy) * fraction];
-      });
-    } else if (initM && Array.isArray(initM)) {
-      // Previous morph target is the new base (no new morph target)
-      basePoints = initM;
-    } else {
-      basePoints = this.snapshotPoints;
-    }
-
-    // ── Translate ─────────────────────────────────────────────────────
+    // ── Translate + Rotate (always needed) ──────────────────────────
     const initT = this.initialValue.translate || { x: 0, y: 0 };
     const targT = this.targetValue.translate || initT;
     const tx = (targT.x - initT.x) * fraction + initT.x;
     const ty = (targT.y - initT.y) * fraction + initT.y;
 
-    let points = basePoints.map(([x, y]) => [x + tx, y + ty]);
-
-    // ── Rotate ────────────────────────────────────────────────────────
     const initR = this.initialValue.rotation || 0;
     const targR = this.targetValue.rotation || initR;
     const angle = (targR - initR) * fraction + initR;
 
-    if (angle !== 0) {
-      // Pivot translates with the shape
-      const pivot = [this.pivotPoint[0] + tx, this.pivotPoint[1] + ty];
-      points = points.map((p) => rotatePoint(p, pivot, angle));
-    }
+    const initM = this.initialValue.morph;
+    const targM = this.targetValue.morph;
+    const morphActive =
+      (targM && Array.isArray(targM)) || (initM && Array.isArray(initM));
 
-    setDefiningPoints(this.element.entity, points);
+    if (morphActive) {
+      // ── Morph path ──────────────────────────────────────────────────
+      // Morph targets are absolute world-space coordinates. We need to
+      // smoothly interpolate from the shape's CURRENT position (which
+      // includes translate + rotation applied to snapshotPoints) to the
+      // morph target. This avoids any "jump" at fraction=0.
+
+      // 1. Compute the "current position" without morph: snapshot + translate + rotate
+      let currentPos = this.snapshotPoints.map(([x, y]) => [x + tx, y + ty]);
+      if (angle !== 0) {
+        const pivot = [this.pivotPoint[0] + tx, this.pivotPoint[1] + ty];
+        currentPos = currentPos.map((p) => rotatePoint(p, pivot, angle));
+      }
+
+      // 2. Determine from/to in world space
+      const from = initM && Array.isArray(initM) ? initM : currentPos;
+      const to = targM && Array.isArray(targM) ? targM : from;
+
+      // 3. Interpolate directly in world space
+      const points = from.map(([fx, fy], i) => {
+        const [tox, toy] = to[i] || [fx, fy];
+        return [fx + (tox - fx) * fraction, fy + (toy - fy) * fraction];
+      });
+
+      setDefiningPoints(this.element.entity, points);
+    } else {
+      // ── Standard translate + rotate path ────────────────────────────
+      let points = this.snapshotPoints.map(([x, y]) => [x + tx, y + ty]);
+
+      if (angle !== 0) {
+        const pivot = [this.pivotPoint[0] + tx, this.pivotPoint[1] + ty];
+        points = points.map((p) => rotatePoint(p, pivot, angle));
+      }
+
+      setDefiningPoints(this.element.entity, points);
+    }
   }
 }
