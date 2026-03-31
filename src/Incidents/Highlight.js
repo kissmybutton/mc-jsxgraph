@@ -57,16 +57,53 @@ export default class Highlight extends Effect {
       this._blinkBaseSet = true;
     }
 
-    const intensity = Math.abs(Math.sin(fraction * Math.PI * numBlinks));
-    const isLit = intensity > 0.5;
+    const mode = this.targetValue?.mode ?? "blink";
+
+    if (mode === "appear") {
+      // Appear mode: 2 blinks via visibility toggle.
+      // 0-25% visible, 25-50% hidden, 50-75% visible, 75-100% hidden.
+      // After the effect ends, the element stays at its final opacity
+      // (set to 1 by a companion Attr incident from clipController).
+      const quarter = Math.floor(fraction * 4); // 0,1,2,3
+      const show = quarter === 0 || quarter === 2 || fraction >= 1;
+      el.setAttribute({
+        strokeOpacity: show ? 1 : 0,
+        fillOpacity: show ? 1 : 0,
+      });
+      // Polygon borders
+      if (el.elType === "polygon" && el.borders) {
+        for (const border of el.borders) {
+          border.setAttribute({ strokeOpacity: show ? 1 : 0 });
+        }
+      }
+      // At end of animation: ensure fully visible
+      if (fraction >= 1) {
+        el.setAttribute({ strokeOpacity: 1, fillOpacity: 1 });
+        if (el.elType === "polygon" && el.borders) {
+          for (const border of el.borders) {
+            border.setAttribute({ strokeOpacity: 1 });
+          }
+        }
+      }
+      el.board.update();
+      return;
+    }
+
+    // Standard blink mode: crisp on/off toggle (same pattern as appear).
+    // Each blink = 2 segments (on + off). Total segments = numBlinks * 2.
+    const totalSegments = numBlinks * 2;
+    const segment = Math.floor(fraction * totalSegments);
+    const isLit = segment % 2 === 0 && fraction < 1; // even segments = lit
 
     const attrs = {
       strokeColor: isLit ? color : this._blinkBaseStroke,
-      strokeWidth: this._blinkBaseWidth + intensity * 3,
+      strokeWidth: isLit ? this._blinkBaseWidth + 3 : this._blinkBaseWidth,
+      strokeOpacity: isLit ? 1 : 0,
+      fillOpacity: isLit ? 1 : 0,
     };
 
     if (hasSize) {
-      attrs.size = this._blinkBaseSize + intensity * 4;
+      attrs.size = isLit ? this._blinkBaseSize + 4 : this._blinkBaseSize;
     }
 
     if (hasFill) {
@@ -74,11 +111,31 @@ export default class Highlight extends Effect {
     }
 
     el.setAttribute(attrs);
-    el.board.update();
+    // Polygon borders
+    if (el.elType === "polygon" && el.borders) {
+      for (const border of el.borders) {
+        border.setAttribute({ strokeOpacity: isLit ? 1 : 0 });
+      }
+    }
 
-    // Reset snapshot flag at end of highlight so next highlight re-reads
+    // At end: restore base state and ensure opacity=1
     if (fraction >= 1) {
+      el.setAttribute({
+        strokeColor: this._blinkBaseStroke,
+        strokeWidth: this._blinkBaseWidth,
+        strokeOpacity: 1,
+        fillOpacity: 1,
+      });
+      if (hasFill) el.setAttribute({ fillColor: this._blinkBaseFill });
+      if (hasSize) el.setAttribute({ size: this._blinkBaseSize });
+      if (el.elType === "polygon" && el.borders) {
+        for (const border of el.borders) {
+          border.setAttribute({ strokeOpacity: 1 });
+        }
+      }
       this._blinkBaseSet = false;
     }
+
+    el.board.update();
   }
 }
