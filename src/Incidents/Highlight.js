@@ -60,40 +60,28 @@ export default class Highlight extends Effect {
     const mode = this.targetValue?.mode ?? "blink";
 
     if (mode === "appear") {
-      // Appear mode: 2 blinks via visibility toggle.
-      // 0-25% visible, 25-50% hidden, 50-75% visible, 75-100% hidden.
-      // After the effect ends, the element stays at its final opacity
-      // (set to 1 by a companion Attr incident from clipController).
-      const quarter = Math.floor(fraction * 4); // 0,1,2,3
+      // Appear mode: 2 on/off blinks via opacity, then stays visible.
+      // NO board.update() — setAttribute already updates the SVG directly,
+      // and board.update() was reverting opacity to the creation value.
+      const quarter = Math.floor(fraction * 4);
       const show = quarter === 0 || quarter === 2 || fraction >= 1;
       el.setAttribute({
         strokeOpacity: show ? 1 : 0,
         fillOpacity: show ? 1 : 0,
       });
-      // Polygon borders
       if (el.elType === "polygon" && el.borders) {
         for (const border of el.borders) {
           border.setAttribute({ strokeOpacity: show ? 1 : 0 });
         }
       }
-      // At end of animation: ensure fully visible
-      if (fraction >= 1) {
-        el.setAttribute({ strokeOpacity: 1, fillOpacity: 1 });
-        if (el.elType === "polygon" && el.borders) {
-          for (const border of el.borders) {
-            border.setAttribute({ strokeOpacity: 1 });
-          }
-        }
-      }
-      el.board.update();
+      // NO board.update() here — that's the fix
       return;
     }
 
-    // Standard blink mode: crisp on/off toggle (same pattern as appear).
-    // Each blink = 2 segments (on + off). Total segments = numBlinks * 2.
+    // Standard blink mode: on/off toggle with highlight color.
     const totalSegments = numBlinks * 2;
     const segment = Math.floor(fraction * totalSegments);
-    const isLit = segment % 2 === 0 && fraction < 1; // even segments = lit
+    const isLit = segment % 2 === 0 && fraction < 1;
 
     const attrs = {
       strokeColor: isLit ? color : this._blinkBaseStroke,
@@ -101,24 +89,18 @@ export default class Highlight extends Effect {
       strokeOpacity: isLit ? 1 : 0,
       fillOpacity: isLit ? 1 : 0,
     };
-
-    if (hasSize) {
+    if (hasSize)
       attrs.size = isLit ? this._blinkBaseSize + 4 : this._blinkBaseSize;
-    }
-
-    if (hasFill) {
-      attrs.fillColor = isLit ? color : this._blinkBaseFill;
-    }
-
+    if (hasFill) attrs.fillColor = isLit ? color : this._blinkBaseFill;
     el.setAttribute(attrs);
-    // Polygon borders
+
     if (el.elType === "polygon" && el.borders) {
       for (const border of el.borders) {
         border.setAttribute({ strokeOpacity: isLit ? 1 : 0 });
       }
     }
 
-    // At end: restore base state and ensure opacity=1
+    // At end: restore base state, ensure visible
     if (fraction >= 1) {
       el.setAttribute({
         strokeColor: this._blinkBaseStroke,
@@ -135,7 +117,6 @@ export default class Highlight extends Effect {
       }
       this._blinkBaseSet = false;
     }
-
-    el.board.update();
+    // NO board.update() — setAttribute handles SVG directly
   }
 }

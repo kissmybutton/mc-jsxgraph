@@ -241,20 +241,13 @@ export default class GeomClip extends BrowserClip {
     if (definition.id) {
       this._entityMap[definition.id] = element;
     }
-    // Polygon borders are auto-created by JSXGraph with default opacity (1).
-    // If the polygon is preloaded (opacity 0), sync borders to match —
-    // otherwise showElement at birthtime flashes the borders at full opacity
-    // before the appear() animation kicks in.
+    // Polygon borders are auto-created by JSXGraph with default opacity.
+    // If the polygon is preloaded (opacity 0), sync borders to match.
     if (element.elType === "polygon" && element.borders) {
       const attrs = definition.attributes || {};
       if (attrs.strokeOpacity === 0) {
         for (const border of element.borders) {
           border.setAttribute({ strokeOpacity: 0 });
-        }
-      }
-      if (attrs.fillOpacity === 0) {
-        for (const border of element.borders) {
-          border.setAttribute({ fillOpacity: 0 });
         }
       }
     }
@@ -281,25 +274,27 @@ export default class GeomClip extends BrowserClip {
    * Show a JSXGraph element. Handles polygons whose borders are separate elements.
    */
   _showElement(jsgEl) {
-    // setAttribute updates visProp.visible so board.update() preserves state.
-    // setDisplayRendNode directly sets the SVG node display as extra insurance.
-    jsgEl.setAttribute({ visible: true });
+    // Set visProp.visible directly (NOT via setAttribute which resets opacity).
+    // Then use setDisplayRendNode to show the SVG node.
+    jsgEl.visProp.visible = true;
+    if (jsgEl.visPropCalc) jsgEl.visPropCalc.visible = true;
     if (typeof jsgEl.setDisplayRendNode === "function") {
       jsgEl.setDisplayRendNode(true);
     }
     if (jsgEl.elType === "polygon" && jsgEl.borders) {
       for (const border of jsgEl.borders) {
-        border.setAttribute({ visible: true });
+        border.visProp.visible = true;
+        if (border.visPropCalc) border.visPropCalc.visible = true;
         if (typeof border.setDisplayRendNode === "function") {
           border.setDisplayRendNode(true);
         }
       }
     }
-    jsgEl.board.update();
   }
 
   /**
    * Hide a JSXGraph element. Handles polygons whose borders are separate elements.
+   * Uses setAttribute({ visible: false }) + setDisplayRendNode(false) for reliable hiding.
    */
   _hideElement(jsgEl) {
     jsgEl.setAttribute({ visible: false });
@@ -314,7 +309,6 @@ export default class GeomClip extends BrowserClip {
         }
       }
     }
-    jsgEl.board.update();
   }
 
   /**

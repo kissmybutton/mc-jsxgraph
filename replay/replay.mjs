@@ -41,6 +41,14 @@ if (!geom) { console.error("No geomClip in JSON"); process.exit(1); }
 const HTML = `<!DOCTYPE html>
 <html><head>
 <link rel="stylesheet" href="/node_modules/jsxgraph/distrib/jsxgraph.css">
+<script type="importmap">
+{
+  "imports": {
+    "@donkeyclip/motorcortex": "/node_modules/@donkeyclip/motorcortex/dist/motorcortex.esm.min.js",
+    "jsxgraph": "/node_modules/jsxgraph/src/index.js"
+  }
+}
+</script>
 <style>
   body { margin: 0; background: #f8f9fa; }
   #clip { width: 100vw; height: 100vh; }
