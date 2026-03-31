@@ -44,7 +44,6 @@ export default class Highlight extends Effect {
     const curFillColor = el.visProp?.fillcolor ?? this._initFillColor;
     const curStrokeWidth = el.visProp?.strokewidth ?? this._initStrokeWidth;
     const curSize = el.visProp?.size ?? this._initSize;
-    const hasFill = (el.visProp?.fillopacity ?? 0) > 0;
     const hasSize = el.visProp?.size !== undefined;
 
     // On the very first call, snapshot the "pre-blink" state so we can
@@ -85,13 +84,13 @@ export default class Highlight extends Effect {
 
     const attrs = {
       strokeColor: isLit ? color : this._blinkBaseStroke,
+      fillColor: isLit ? color : this._blinkBaseFill,
       strokeWidth: isLit ? this._blinkBaseWidth + 3 : this._blinkBaseWidth,
       strokeOpacity: isLit ? 1 : 0,
       fillOpacity: isLit ? 1 : 0,
     };
     if (hasSize)
       attrs.size = isLit ? this._blinkBaseSize + 4 : this._blinkBaseSize;
-    if (hasFill) attrs.fillColor = isLit ? color : this._blinkBaseFill;
     el.setAttribute(attrs);
 
     if (el.elType === "polygon" && el.borders) {
@@ -108,7 +107,7 @@ export default class Highlight extends Effect {
         strokeOpacity: 1,
         fillOpacity: 1,
       });
-      if (hasFill) el.setAttribute({ fillColor: this._blinkBaseFill });
+      el.setAttribute({ fillColor: this._blinkBaseFill });
       if (hasSize) el.setAttribute({ size: this._blinkBaseSize });
       if (el.elType === "polygon" && el.borders) {
         for (const border of el.borders) {
