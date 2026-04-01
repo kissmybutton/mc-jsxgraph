@@ -378,6 +378,17 @@ export default class GeomClip extends BrowserClip {
         : [...classes, "shape"];
       this.setCustomEntity(id, element, allClasses);
     }
+
+    // Sync polygon borders when created with opacity 0
+    if (element.elType === "polygon" && element.borders) {
+      const attrs = descriptor.attributes || {};
+      if (attrs.strokeOpacity === 0) {
+        for (const border of element.borders) {
+          border.setAttribute({ strokeOpacity: 0 });
+        }
+      }
+    }
+
     return element;
   }
 

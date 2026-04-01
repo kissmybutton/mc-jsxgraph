@@ -1,9 +1,4 @@
-import {
-  loadPlugin,
-  AddElement,
-  RemoveElement,
-  TimeCapsule,
-} from "@donkeyclip/motorcortex";
+import { loadPlugin, TimeCapsule } from "@donkeyclip/motorcortex";
 import Player from "@donkeyclip/motorcortex-player";
 import McGeomDefinition from "../dist/bundle.esm.js";
 import "../node_modules/jsxgraph/distrib/jsxgraph.css";
@@ -72,7 +67,7 @@ const clip = new McGeom.Clip(
         },
       },
 
-      // ── Angle arcs — pre-created invisible; shown/hidden via AddElement ───
+      // ── Angle arcs — pre-created with opacity 0; shown/hidden via Attr ────
       //
       // Arc orientation: JSXGraph draws angles CCW from (vertex→from) to (vertex→to).
       // Using this convention the interior angle is always captured for all three
@@ -88,11 +83,11 @@ const clip = new McGeom.Clip(
         attributes: {
           radius: 0.65,
           fillColor: "#e74c3c",
-          fillOpacity: 0.35,
+          fillOpacity: 0,
           strokeColor: "#c0392b",
+          strokeOpacity: 0,
           strokeWidth: 2,
           withLabel: false,
-          visible: false,
         },
       },
       // arcB : CCW from pC-direction to pA-direction around pB
@@ -105,11 +100,11 @@ const clip = new McGeom.Clip(
         attributes: {
           radius: 0.65,
           fillColor: "#e74c3c",
-          fillOpacity: 0.35,
+          fillOpacity: 0,
           strokeColor: "#c0392b",
+          strokeOpacity: 0,
           strokeWidth: 2,
           withLabel: false,
-          visible: false,
         },
       },
       // arcC : CCW from pA-direction to pB-direction around pC
@@ -122,11 +117,11 @@ const clip = new McGeom.Clip(
         attributes: {
           radius: 0.65,
           fillColor: "#e74c3c",
-          fillOpacity: 0.35,
+          fillOpacity: 0,
           strokeColor: "#c0392b",
+          strokeOpacity: 0,
           strokeWidth: 2,
           withLabel: false,
-          visible: false,
         },
       },
 
@@ -137,7 +132,7 @@ const clip = new McGeom.Clip(
         vertex: "pA",
         from: "pB",
         to: "pC",
-        attributes: { visible: false },
+        attributes: { strokeOpacity: 0, fillOpacity: 0 },
       },
 
       // ── Median from pC to midpoint of AB — drawn on during Phase 1 ──────────
@@ -153,11 +148,11 @@ const clip = new McGeom.Clip(
           strokeWidth: 1.5,
           dash: 2,
           withLabel: false,
-          visible: false,
+          strokeOpacity: 0,
         },
       },
 
-      // ── Title labels — SVG text (useHTML:false so visibility toggling works) ─
+      // ── Title labels — SVG text (useHTML:false, start invisible via opacity) ─
       {
         type: "text",
         id: "lblAcute",
@@ -166,7 +161,7 @@ const clip = new McGeom.Clip(
           fontSize: 22,
           strokeColor: "#5dade2",
           useHTML: false,
-          visible: false,
+          strokeOpacity: 0,
         },
       },
       {
@@ -177,7 +172,7 @@ const clip = new McGeom.Clip(
           fontSize: 22,
           strokeColor: "#2ecc71",
           useHTML: false,
-          visible: false,
+          strokeOpacity: 0,
         },
       },
       {
@@ -188,7 +183,7 @@ const clip = new McGeom.Clip(
           fontSize: 22,
           strokeColor: "#e67e22",
           useHTML: false,
-          visible: false,
+          strokeOpacity: 0,
         },
       },
     ],
@@ -214,7 +209,78 @@ function track(incident, startTime, element, type, duration = 0) {
   timelineData.push({ startTime, element, type, duration });
 }
 
-// ── Phase intro: fade the triangle in from transparent ───────────────────────
+// ── Helpers: show/hide via Attr (replaces AddElement/RemoveElement) ──────
+
+function showArc(id, startTime) {
+  track(
+    new McGeom.Attr(
+      { animatedAttrs: { strokeOpacity: 1, fillOpacity: 0.35 } },
+      { selector: `!#${id}`, duration: 1 },
+    ),
+    startTime,
+    id,
+    "attr",
+    1,
+  );
+}
+
+function showText(id, startTime) {
+  track(
+    new McGeom.Attr(
+      { animatedAttrs: { strokeOpacity: 1 } },
+      { selector: `!#${id}`, duration: 1 },
+    ),
+    startTime,
+    id,
+    "attr",
+    1,
+  );
+}
+
+function hideEl(id, startTime) {
+  track(
+    new McGeom.Attr(
+      { animatedAttrs: { strokeOpacity: 0, fillOpacity: 0 } },
+      { selector: `!#${id}`, duration: 1 },
+    ),
+    startTime,
+    id,
+    "attr",
+    1,
+  );
+}
+
+function blink(id, startTime, numBlinks, duration, color, origColor) {
+  const cycleTime = duration / numBlinks;
+  const halfCycle = cycleTime / 2;
+  for (let i = 0; i < numBlinks; i++) {
+    const t = startTime + i * cycleTime;
+    // Flash ON
+    track(
+      new McGeom.Attr(
+        { animatedAttrs: { strokeColor: color } },
+        { selector: `!#${id}`, duration: 1 },
+      ),
+      t,
+      id,
+      "attr",
+      1,
+    );
+    // Flash OFF
+    track(
+      new McGeom.Attr(
+        { animatedAttrs: { strokeColor: origColor } },
+        { selector: `!#${id}`, duration: 1 },
+      ),
+      t + halfCycle,
+      id,
+      "attr",
+      1,
+    );
+  }
+}
+
+// ── Phase intro: fade the triangle in from transparent ───────────────────
 track(
   new McGeom.Attr(
     { animatedAttrs: { fillOpacity: 0.2 } },
@@ -231,20 +297,10 @@ track(
 // pC = [5, 4.5]  →  all interior angles are acute (< 90°)
 // ════════════════════════════════════════════════════════════════════════════
 
-track(
-  new AddElement({ definition: { id: "lblAcute" } }, { mcid: "lblAcute" }),
-  300,
-  "lblAcute",
-  "add",
-);
+showText("lblAcute", 300);
 
 // Draw in the median line (midpoint of AB → pC)
-track(
-  new AddElement({ definition: { id: "median" } }, { mcid: "median" }),
-  600,
-  "median",
-  "add",
-);
+showText("median", 600);
 track(
   new McGeom.DrawOn(
     { animatedAttrs: { drawOn: 1 } },
@@ -255,39 +311,15 @@ track(
   "drawOn",
   800,
 );
-track(new RemoveElement({ mcid: "median" }), 5000, "median", "remove");
+hideEl("median", 5000);
 
-track(
-  new AddElement({ definition: { id: "arcA" } }, { mcid: "arcA" }),
-  900,
-  "arcA",
-  "add",
-);
-track(
-  new AddElement({ definition: { id: "arcB" } }, { mcid: "arcB" }),
-  900,
-  "arcB",
-  "add",
-);
-track(
-  new AddElement({ definition: { id: "arcC" } }, { mcid: "arcC" }),
-  900,
-  "arcC",
-  "add",
-);
+showArc("arcA", 900);
+showArc("arcB", 900);
+showArc("arcC", 900);
 
-track(
-  new McGeom.Highlight(
-    { animatedAttrs: { highlight: { numBlinks: 3, color: "#2471a3" } } },
-    { selector: "!#tri", duration: 2000 },
-  ),
-  1500,
-  "tri",
-  "highlight",
-  2000,
-);
+blink("tri", 1500, 3, 2000, "#2471a3", "#2980b9");
 
-track(new RemoveElement({ mcid: "lblAcute" }), 5000, "lblAcute", "remove");
+hideEl("lblAcute", 5000);
 
 // ════════════════════════════════════════════════════════════════════════════
 // Phase 2 — Orthogon
@@ -313,45 +345,17 @@ track(
   2000,
 );
 
-track(new RemoveElement({ mcid: "arcA" }), 7700, "arcA", "remove");
-track(
-  new AddElement({ definition: { id: "markerA" } }, { mcid: "markerA" }),
-  7700,
-  "markerA",
-  "add",
-);
+hideEl("arcA", 7700);
+showArc("markerA", 7700);
 
-track(
-  new AddElement({ definition: { id: "lblRight" } }, { mcid: "lblRight" }),
-  7900,
-  "lblRight",
-  "add",
-);
+showText("lblRight", 7900);
 
-track(
-  new McGeom.Highlight(
-    { animatedAttrs: { highlight: { numBlinks: 3, color: "#1e8449" } } },
-    { selector: "!#tri", duration: 2000 },
-  ),
-  8500,
-  "tri",
-  "highlight",
-  2000,
-);
+blink("tri", 8500, 3, 2000, "#1e8449", "#2980b9");
 
-track(
-  new McGeom.Highlight(
-    { animatedAttrs: { highlight: { numBlinks: 3, color: "#1e8449" } } },
-    { selector: "!#markerA", duration: 2000 },
-  ),
-  8500,
-  "markerA",
-  "highlight",
-  2000,
-);
+blink("markerA", 8500, 3, 2000, "#1e8449", "#2980b9");
 
-track(new RemoveElement({ mcid: "lblRight" }), 11500, "lblRight", "remove");
-track(new RemoveElement({ mcid: "markerA" }), 11500, "markerA", "remove");
+hideEl("lblRight", 11500);
+hideEl("markerA", 11500);
 
 // ════════════════════════════════════════════════════════════════════════════
 // Phase 3 — Amblygon
@@ -377,43 +381,15 @@ track(
   2000,
 );
 
-track(
-  new AddElement({ definition: { id: "arcA" } }, { mcid: "arcA" }),
-  14200,
-  "arcA",
-  "add",
-);
+showArc("arcA", 14200);
 
-track(
-  new AddElement({ definition: { id: "lblObtuse" } }, { mcid: "lblObtuse" }),
-  14400,
-  "lblObtuse",
-  "add",
-);
+showText("lblObtuse", 14400);
 
-track(
-  new McGeom.Highlight(
-    { animatedAttrs: { highlight: { numBlinks: 3, color: "#ba4a00" } } },
-    { selector: "!#tri", duration: 2000 },
-  ),
-  15000,
-  "tri",
-  "highlight",
-  2000,
-);
+blink("tri", 15000, 3, 2000, "#ba4a00", "#2980b9");
 
-track(
-  new McGeom.Highlight(
-    { animatedAttrs: { highlight: { numBlinks: 3, color: "#ba4a00" } } },
-    { selector: "!#arcA", duration: 2000 },
-  ),
-  15000,
-  "arcA",
-  "highlight",
-  2000,
-);
+blink("arcA", 15000, 3, 2000, "#ba4a00", "#c0392b");
 
-track(new RemoveElement({ mcid: "lblObtuse" }), 18000, "lblObtuse", "remove");
+hideEl("lblObtuse", 18000);
 
 // ── Player ───────────────────────────────────────────────────────────────────
 

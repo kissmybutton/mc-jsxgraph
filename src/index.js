@@ -1,7 +1,6 @@
 import GeomClip from "./Incidents/GeomClip";
 import Attr from "./Incidents/Attr";
 import DrawOn from "./Incidents/DrawOn";
-import Highlight from "./Incidents/Highlight";
 import Morph from "./Incidents/Morph";
 import Rotate from "./Incidents/Rotate";
 import Translate from "./Incidents/Translate";
@@ -42,21 +41,6 @@ const morphRules = {
         type: "array",
         min: 2,
         items: coordPair,
-      },
-    },
-  },
-};
-
-const highlightRules = {
-  animatedAttrs: {
-    type: "object",
-    props: {
-      highlight: {
-        type: "object",
-        props: {
-          numBlinks: { type: "number", min: 1, integer: true },
-          color: { type: "color" },
-        },
       },
     },
   },
@@ -130,11 +114,6 @@ export default {
       exportable: DrawOn,
       name: "DrawOn",
       attributesValidationRules: drawOnRules,
-    },
-    {
-      exportable: Highlight,
-      name: "Highlight",
-      attributesValidationRules: highlightRules,
     },
     {
       exportable: Rotate,

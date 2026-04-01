@@ -54,6 +54,14 @@ export default class Attr extends Effect {
 
     const el = this.element.entity;
     el.setAttribute({ [this.attributeKey]: value });
+    // Labels: sync visibility with element opacity so labeled points
+    // appear/disappear correctly when animated via strokeOpacity/fillOpacity.
+    if (el.label) {
+      const k = this.attributeKey;
+      if (k === "strokeOpacity" || k === "fillOpacity") {
+        el.label.setAttribute({ visible: value > 0 });
+      }
+    }
     // Polygons: propagate stroke attrs to border segments AND sync fill with stroke color
     if (el.elType === "polygon" && el.borders) {
       const k = this.attributeKey;
