@@ -367,7 +367,7 @@ export default class GeomClip extends BrowserClip {
    * @returns the JSXGraph element, or null on failure
    */
   addShape(descriptor) {
-    const { id, classes = [], birthtime } = descriptor;
+    const { id, classes = [] } = descriptor;
     const element = this._createBoardElement(descriptor);
     if (!element) return null;
 
@@ -376,7 +376,7 @@ export default class GeomClip extends BrowserClip {
       const allClasses = classes.includes("shape")
         ? classes
         : [...classes, "shape"];
-      this.setCustomEntity(id, element, allClasses, birthtime);
+      this.setCustomEntity(id, element, allClasses);
     }
 
     // Sync polygon borders when created with opacity 0
