@@ -22,6 +22,18 @@ import { Effect } from "@donkeyclip/motorcortex";
  */
 export default class Attr extends Effect {
   getScratchValue() {
+    // If an explicit fromValues map was provided at construction time, use it.
+    // This is necessary for blink incidents where getScratchValue may be called
+    // lazily (at seek time), after the visProp has been restored to its original
+    // hidden state — making the live visProp read unreliable as a FROM source.
+    const fromValues = this.attrs?.fromValues;
+    if (
+      fromValues &&
+      Object.prototype.hasOwnProperty.call(fromValues, this.attributeKey)
+    ) {
+      return fromValues[this.attributeKey];
+    }
+
     const el = this.element.entity;
     // JSXGraph stores all visual properties lowercased in visProp
     const key = this.attributeKey.toLowerCase();
@@ -41,7 +53,6 @@ export default class Attr extends Effect {
 
     let value;
     if (_isColorKey(this.attributeKey)) {
-      // Ensure both from/to are valid color strings for interpolation
       const fromStr = typeof from === "string" ? from : "#000000";
       const toStr = typeof to === "string" ? to : "#000000";
       value = _lerpColor(fromStr, toStr, fraction);
@@ -53,31 +64,102 @@ export default class Attr extends Effect {
     }
 
     const el = this.element.entity;
-    el.setAttribute({ [this.attributeKey]: value });
+    const cacheKey = this.attributeKey.toLowerCase();
+
+    // Keep JSXGraph's internal state in sync so seeks and board.update() calls
+    // from outside (e.g. user interaction) render the correct value.
+    if (el.visProp) el.visProp[cacheKey] = value;
+    if (el.visPropOld) el.visPropOld[cacheKey] = undefined;
+
+    // Directly apply to the SVG node — bypasses JSXGraph's setAttribute +
+    // board.update() pipeline which defers rendering and was causing no-op frames.
+    _applyToRendNode(el.rendNode, this.attributeKey, value);
+
     // Labels: sync visibility with element opacity so labeled points
     // appear/disappear correctly when animated via strokeOpacity/fillOpacity.
     if (el.label) {
       const k = this.attributeKey;
       if (k === "strokeOpacity" || k === "fillOpacity") {
-        el.label.setAttribute({ visible: value > 0 });
+        const lrn = el.label.rendNode;
+        if (lrn) lrn.style.display = value > 0 ? "" : "none";
       }
     }
-    // Polygons: propagate stroke attrs to border segments AND sync fill with stroke color
+
+    // Polygons: propagate stroke attrs to border segments.
     if (el.elType === "polygon" && el.borders) {
       const k = this.attributeKey;
       if (k === "strokeColor") {
-        // Recoloring a polygon should change the fill too (it's the dominant visual)
-        el.setAttribute({ fillColor: value });
+        // Recoloring a polygon changes the fill too (it's the dominant visual).
+        _applyToRendNode(el.rendNode, "fillColor", value);
+        if (el.visProp) el.visProp.fillcolor = value;
         for (const border of el.borders) {
-          border.setAttribute({ strokeColor: value });
+          if (border.visProp) border.visProp.strokecolor = value;
+          _applyToRendNode(border.rendNode, "strokeColor", value);
         }
       } else if (k === "strokeOpacity" || k === "strokeWidth") {
         for (const border of el.borders) {
-          border.setAttribute({ [k]: value });
+          if (border.visProp) border.visProp[cacheKey] = value;
+          if (border.visPropOld) border.visPropOld[cacheKey] = undefined;
+          _applyToRendNode(border.rendNode, k, value);
         }
       }
     }
-    el.board.update();
+  }
+}
+
+// ─── Direct SVG rendering ─────────────────────────────────────────────────────
+
+/**
+ * Apply a JSXGraph attribute value directly to an SVG rendNode,
+ * bypassing JSXGraph's board.update() pipeline.
+ */
+function _applyToRendNode(rn, key, value) {
+  if (!rn) return;
+
+  // JSXGraph text elements render as positioned HTML <div> overlays even in
+  // SVG mode. SVG attribute-setting has no effect on HTML elements, so we
+  // must use CSS styles instead.
+  if (rn.namespaceURI !== "http://www.w3.org/2000/svg") {
+    switch (key) {
+      case "strokeOpacity":
+      case "fillOpacity":
+        rn.style.opacity = String(value);
+        break;
+      case "strokeColor":
+        rn.style.color = value;
+        break;
+      case "fillColor":
+        rn.style.backgroundColor = value;
+        break;
+    }
+    return;
+  }
+
+  switch (key) {
+    case "fillOpacity":
+      rn.setAttribute("fill-opacity", String(value));
+      break;
+    case "strokeOpacity":
+      rn.setAttribute("stroke-opacity", String(value));
+      break;
+    case "strokeWidth":
+      rn.setAttribute("stroke-width", String(value));
+      break;
+    case "fillColor":
+      rn.setAttribute("fill", value);
+      break;
+    case "strokeColor":
+      rn.setAttribute("stroke", value);
+      break;
+    case "size":
+      // JSXGraph point (face:'o') renders as <ellipse> with rx/ry = visProp.size
+      rn.setAttribute("rx", String(value));
+      rn.setAttribute("ry", String(value));
+      break;
+    default:
+      // For any other attr, fall back to setAttribute + board.update()
+      // (rare path: fontSize, size, radius, etc. need JSXGraph's geometry pipeline)
+      break;
   }
 }
 

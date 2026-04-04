@@ -182,9 +182,7 @@ export default class GeomClip extends BrowserClip {
         const fromMap = this._entityMap[arg];
         const fromBoard = this.board?.objects?.[arg];
         if (!fromMap && !fromBoard) {
-          console.warn(
-            `[_createBoardElement] ref "${arg}" not in _entityMap (${Object.keys(this._entityMap).length} keys) nor board.objects`,
-          );
+          // ref not yet in map — caller handles retry via pending queue
         }
         return fromMap || fromBoard || arg;
       });
@@ -207,12 +205,44 @@ export default class GeomClip extends BrowserClip {
     ) {
       for (let i = 0; i < resolvedArgs.length; i++) {
         if (typeof resolvedArgs[i] === "string") {
-          console.warn(
-            `mc-jsxgraph: ${elementType} "${id}" references unknown point "${resolvedArgs[i]}". ` +
-              `Make sure points are added before shapes that reference them.`,
-          );
           return null;
         }
+      }
+    }
+
+    // When raw coordinate arrays are passed (not references to existing JSXGraph
+    // elements), JSXGraph auto-creates implicit child points with default styling
+    // (fully visible orange dots). Hide them unconditionally — they are never
+    // registered in _entityMap so hideElement is never called on them.
+    const firstArgIsRawCoord = Array.isArray(resolvedArgs[0]);
+    if (firstArgIsRawCoord) {
+      if (elementType === "polygon") {
+        elementAttrs = {
+          ...elementAttrs,
+          vertices: {
+            visible: false,
+            withLabel: false,
+            ...(elementAttrs.vertices || {}),
+          },
+        };
+      } else if (
+        elementType === "segment" ||
+        elementType === "line" ||
+        elementType === "arrow"
+      ) {
+        elementAttrs = {
+          ...elementAttrs,
+          point1: {
+            visible: false,
+            withLabel: false,
+            ...(elementAttrs.point1 || {}),
+          },
+          point2: {
+            visible: false,
+            withLabel: false,
+            ...(elementAttrs.point2 || {}),
+          },
+        };
       }
     }
 
@@ -233,9 +263,6 @@ export default class GeomClip extends BrowserClip {
   renderCustomEntity(definition) {
     const element = this._createBoardElement(definition);
     if (!element) {
-      console.warn(
-        `[renderCustomEntity] _createBoardElement returned null for "${definition.id}" (type: ${definition.type})`,
-      );
       return null;
     }
     if (definition.id) {
