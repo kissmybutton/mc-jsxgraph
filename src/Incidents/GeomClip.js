@@ -95,6 +95,14 @@ export default class GeomClip extends BrowserClip {
       return Array.isArray(result) ? result.filter((el) => el != null) : result;
     };
 
+    // ── VisibilityChannel bridge ─────────────────────────────────────────────
+    // MC's VisibilityChannel calls this.context.showElement?.(entity) and
+    // this.context.hideElement?.(entity), but setContext() does not include
+    // these methods — they are only on the clip instance. Attach them so
+    // _hideAllEntities() (seek to ms 0) and _applyEvent() (birthtime) work.
+    this.ownContext.showElement = (jsgEl) => this._showElement(jsgEl);
+    this.ownContext.hideElement = (jsgEl) => this._hideElement(jsgEl);
+
     // ── Initial shapes ───────────────────────────────────────────────────────
     const shapes = this.attrs.shapes || [];
     for (const shape of shapes) {
@@ -261,6 +269,15 @@ export default class GeomClip extends BrowserClip {
    * @returns the JSXGraph element, or null on failure
    */
   renderCustomEntity(definition) {
+    // If definition is already a live JSXGraph element (e.g. a polygon border
+    // registered by addFigure), return it directly without re-creating.
+    if (
+      definition &&
+      typeof definition === "object" &&
+      definition.elType !== undefined
+    ) {
+      return definition;
+    }
     const element = this._createBoardElement(definition);
     if (!element) {
       return null;

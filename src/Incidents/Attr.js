@@ -37,6 +37,14 @@ export default class Attr extends Effect {
     const el = this.element.entity;
     // JSXGraph stores all visual properties lowercased in visProp
     const key = this.attributeKey.toLowerCase();
+
+    // glow is a reserved internal attribute (not a JSXGraph visProp).
+    // Initialise it to 0 on first read so the MC chain starts clean.
+    if (key === "glow") {
+      if (el.visProp && !("glow" in el.visProp)) el.visProp.glow = 0;
+      return el.visProp?.glow ?? 0;
+    }
+
     const val = el.visProp?.[key];
     // For color keys, always return a valid hex string — "none"/"transparent"/undefined
     // would crash the color interpolation or cause MC to reject the scratch value.
@@ -85,18 +93,13 @@ export default class Attr extends Effect {
       }
     }
 
-    // Polygons: propagate stroke attrs to border segments.
+    // Polygons: propagate strokeOpacity/strokeWidth to border segments so that
+    // fade-in and disappear affect the visible cell borders.
+    // fillColor and strokeColor are NOT propagated — polygon borders keep their
+    // original color regardless of fill changes (recolor, highlight).
     if (el.elType === "polygon" && el.borders) {
       const k = this.attributeKey;
-      if (k === "strokeColor") {
-        // Recoloring a polygon changes the fill too (it's the dominant visual).
-        _applyToRendNode(el.rendNode, "fillColor", value);
-        if (el.visProp) el.visProp.fillcolor = value;
-        for (const border of el.borders) {
-          if (border.visProp) border.visProp.strokecolor = value;
-          _applyToRendNode(border.rendNode, "strokeColor", value);
-        }
-      } else if (k === "strokeOpacity" || k === "strokeWidth") {
+      if (k === "strokeOpacity" || k === "strokeWidth") {
         for (const border of el.borders) {
           if (border.visProp) border.visProp[cacheKey] = value;
           if (border.visPropOld) border.visPropOld[cacheKey] = undefined;
@@ -115,6 +118,16 @@ export default class Attr extends Effect {
  */
 function _applyToRendNode(rn, key, value) {
   if (!rn) return;
+
+  // glow: CSS drop-shadow highlight — reserved for internal use, never exposed to LLM.
+  // Works on both SVG and HTML rendNodes via style.filter.
+  if (key === "glow") {
+    rn.style.filter =
+      value > 0.001
+        ? `drop-shadow(0px 0px ${value * 22}px rgba(210, 40, 130, ${Math.min(value * 1.4, 1)}))`
+        : "";
+    return;
+  }
 
   // JSXGraph text elements render as positioned HTML <div> overlays even in
   // SVG mode. SVG attribute-setting has no effect on HTML elements, so we
