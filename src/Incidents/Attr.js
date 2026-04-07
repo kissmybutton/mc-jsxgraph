@@ -124,7 +124,7 @@ function _applyToRendNode(rn, key, value) {
   if (key === "glow") {
     rn.style.filter =
       value > 0.001
-        ? `drop-shadow(0px 0px ${value * 22}px rgba(210, 40, 130, ${Math.min(value * 1.4, 1)}))`
+        ? `drop-shadow(0px 0px ${value * 8}px rgba(210, 40, 130, 1)) drop-shadow(0px 0px ${value * 30}px rgba(210, 40, 130, ${Math.min(value * 1.4, 1)}))`
         : "";
     return;
   }
