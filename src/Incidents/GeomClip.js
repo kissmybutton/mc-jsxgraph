@@ -49,6 +49,13 @@ export default class GeomClip extends BrowserClip {
     return `<div style="width:100%;height:100%;"></div>`;
   }
 
+  get css() {
+    // Injected into the clip's shadow DOM so KaTeX math rendering works.
+    // Without this, KaTeX's em-based sizing (subscripts, superscripts,
+    // fractions) breaks because its CSS can't cross the shadow boundary.
+    return this.attrs.css ?? "";
+  }
+
   onAfterRender() {
     const container = this.context.rootElement;
     const { offsetWidth, offsetHeight } = container;
@@ -325,6 +332,11 @@ export default class GeomClip extends BrowserClip {
     if (typeof jsgEl.setDisplayRendNode === "function") {
       jsgEl.setDisplayRendNode(true);
     }
+    // JSXGraph image elements don't propagate opacity via setAttribute —
+    // ensure the rendNode is visible when shown.
+    if (jsgEl.elType === "image" && jsgEl.rendNode) {
+      jsgEl.rendNode.style.opacity = "1";
+    }
     if (jsgEl.elType === "polygon" && jsgEl.borders) {
       for (const border of jsgEl.borders) {
         border.visProp.visible = true;
@@ -344,6 +356,11 @@ export default class GeomClip extends BrowserClip {
     jsgEl.setAttribute({ visible: false });
     if (typeof jsgEl.setDisplayRendNode === "function") {
       jsgEl.setDisplayRendNode(false);
+    }
+    // JSXGraph image elements don't propagate opacity via setAttribute —
+    // force rendNode hidden.
+    if (jsgEl.elType === "image" && jsgEl.rendNode) {
+      jsgEl.rendNode.style.opacity = "0";
     }
     if (jsgEl.elType === "polygon" && jsgEl.borders) {
       for (const border of jsgEl.borders) {
