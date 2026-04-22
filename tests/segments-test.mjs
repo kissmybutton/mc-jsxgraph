@@ -64,7 +64,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
     }
 
     // Test 4: Full addCustomEntity flow (hidden=true like addShape does)
-    log.push("\n=== Test 4: renderCustomEntity + hideElement flow ===");
+    log.push("\n=== Test 4: renderCustomEntity + hideEntity flow ===");
     try {
       const pt3el = gc.renderCustomEntity({
         type: "point", id: "rce_p1", args: [3, 2], attributes: { withLabel: true, name: "X" },
@@ -92,7 +92,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
         gc._hideElement(segel);
         log.push("Segment hidden");
 
-        // Now show everything (simulating VisibilityChannel showElement)
+        // Now show everything (simulating tool-level show)
         gc._showElement(pt3el);
         gc._showElement(pt4el);
         gc._showElement(segel);

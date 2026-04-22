@@ -102,14 +102,6 @@ export default class GeomClip extends BrowserClip {
       return Array.isArray(result) ? result.filter((el) => el != null) : result;
     };
 
-    // ── VisibilityChannel bridge ─────────────────────────────────────────────
-    // MC's VisibilityChannel calls this.context.showElement?.(entity) and
-    // this.context.hideElement?.(entity), but setContext() does not include
-    // these methods — they are only on the clip instance. Attach them so
-    // _hideAllEntities() (seek to ms 0) and _applyEvent() (birthtime) work.
-    this.ownContext.showElement = (jsgEl) => this._showElement(jsgEl);
-    this.ownContext.hideElement = (jsgEl) => this._hideElement(jsgEl);
-
     // ── Initial shapes ───────────────────────────────────────────────────────
     const shapes = this.attrs.shapes || [];
     for (const shape of shapes) {
@@ -228,7 +220,7 @@ export default class GeomClip extends BrowserClip {
     // When raw coordinate arrays are passed (not references to existing JSXGraph
     // elements), JSXGraph auto-creates implicit child points with default styling
     // (fully visible orange dots). Hide them unconditionally — they are never
-    // registered in _entityMap so hideElement is never called on them.
+    // registered in _entityMap so hideEntity is never called on them.
     const firstArgIsRawCoord = Array.isArray(resolvedArgs[0]);
     if (firstArgIsRawCoord) {
       if (elementType === "polygon") {
@@ -267,8 +259,7 @@ export default class GeomClip extends BrowserClip {
     });
   }
 
-  // ── addCustomEntity API (MC v1) ──────────────────────────────────────────
-  // These three methods are called by MC's addCustomEntity / VisibilityChannel.
+  // ── addCustomEntity API ─────────────────────────────────────────────────
 
   /**
    * Called by MC's addCustomEntity to create a JSXGraph element from a definition.
@@ -306,18 +297,10 @@ export default class GeomClip extends BrowserClip {
   }
 
   /**
-   * Called by MC's VisibilityChannel to show a previously hidden element.
+   * Called by MC's addCustomEntity when hidden=true.
    * @param {object} jsgEl - JSXGraph element
    */
-  showElement(jsgEl) {
-    this._showElement(jsgEl);
-  }
-
-  /**
-   * Called by MC's VisibilityChannel to hide an element.
-   * @param {object} jsgEl - JSXGraph element
-   */
-  hideElement(jsgEl) {
+  hideEntity(jsgEl) {
     this._hideElement(jsgEl);
   }
 
