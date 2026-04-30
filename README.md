@@ -1,8 +1,8 @@
-# mc-jsxgraph
+# @kissmybutton/mc-jsxgraph
 
 **Table of Contents**
 
-- [mc-jsxgraph](#mc-jsxgraph)
+- [@kissmybutton/mc-jsxgraph](#kissmybuttonmc-jsxgraph)
   - [Demo](#demo)
 - [Intro / Features](#intro--features)
 - [Getting Started](#getting-started)
@@ -27,13 +27,13 @@
 
 ## Demo
 
-[Check it out here](https://kissmybutton.github.io/mc-jsxgraph/demo/)
+[Check it out here](https://kissmybutton.github.io/@kissmybutton/mc-jsxgraph/demo/)
 
 # Intro / Features
 
 [JSXGraph](https://jsxgraph.uni-bayreuth.de/) geometry visualisation as a MotorCortex clip.
 
-mc-jsxgraph lets you declare a JSXGraph board full of geometric shapes and animate them on a timeline — morphing vertices, tweening visual attributes, highlighting elements, and dynamically adding or removing shapes mid-clip. Every incident supports MC's full feature set: easing, delay, repeats, hiatus, and accurate seeking in both directions.
+@kissmybutton/mc-jsxgraph lets you declare a JSXGraph board full of geometric shapes and animate them on a timeline — morphing vertices, tweening visual attributes, highlighting elements, and dynamically adding or removing shapes mid-clip. Every incident supports MC's full feature set: easing, delay, repeats, hiatus, and accurate seeking in both directions.
 
 The plugin exposes six Incidents and one custom Clip:
 
@@ -55,16 +55,16 @@ The plugin exposes six Incidents and one custom Clip:
 ## Installation
 
 ```bash
-$ npm install mc-jsxgraph
+$ npm install @kissmybutton/mc-jsxgraph
 # OR
-$ yarn add mc-jsxgraph
+$ yarn add @kissmybutton/mc-jsxgraph
 ```
 
 ## Importing and Loading
 
 ```javascript
 import { loadPlugin } from "@donkeyclip/motorcortex";
-import McGeomDefinition from "mc-jsxgraph";
+import McGeomDefinition from "@kissmybutton/mc-jsxgraph";
 
 const McGeom = loadPlugin(McGeomDefinition);
 ```

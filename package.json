@@ -1,5 +1,5 @@
 {
-  "name": "mc-jsxgraph",
+  "name": "@kissmybutton/mc-jsxgraph",
   "version": "0.0.1",
   "description": "MotorCortex plugin for geometric animations using JSXGraph",
   "main": "dist/bundle.cjs.js",
@@ -9,7 +9,7 @@
   "author": "",
   "repository": {
     "type": "git",
-    "url": "Your git repo here"
+    "url": "https://github.com/kissmybutton/mc-jsxgraph.git"
   },
   "license": "MIT",
   "engines": {
@@ -41,7 +41,7 @@
     ]
   },
   "peerDependencies": {
-    "@donkeyclip/motorcortex": "9.17.1"
+    "@donkeyclip/motorcortex": ">=9.24.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.27.2",
@@ -52,7 +52,7 @@
     "@babel/plugin-transform-react-jsx": "^7.27.1",
     "@babel/preset-env": "^7.29.2",
     "@babel/preset-react": "^7.27.1",
-    "@donkeyclip/motorcortex": "file:/Users/andreastrantidis/Projects/donkeyclip/packages/motorcortex",
+    "@donkeyclip/motorcortex": "^9.24.0",
     "@donkeyclip/motorcortex-player": "2.15.18",
     "@rollup/plugin-babel": "^7.0.0",
     "@rollup/plugin-commonjs": "^29.0.2",
