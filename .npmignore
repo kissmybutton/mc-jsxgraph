@@ -1,0 +1,8 @@
+preview/
+replay/
+tests/
+scripts/
+demo/
+.claude/
+.mcp.json
+CLAUDE.md
