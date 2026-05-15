@@ -1,6 +1,6 @@
 {
   "name": "@kissmybutton/mc-jsxgraph",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "MotorCortex plugin for geometric animations using JSXGraph",
   "main": "dist/bundle.cjs.js",
   "module": "dist/bundle.esm.js",

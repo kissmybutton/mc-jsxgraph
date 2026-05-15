@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "geom-debug": {
+      "command": "node",
+      "args": [
+        "/Users/andreastrantidis/Projects/donkeyclip/mcp/geom-tutor/server.mjs"
+      ]
+    }
+  }
+}
